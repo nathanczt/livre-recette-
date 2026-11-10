@@ -10,6 +10,8 @@ Après chaque modification : commit, push sur la branche de travail, **puis publ
 sans attendre (c'est `main` qui est en ligne sur GitHub Pages) :
 `git fetch origin main && git merge origin/main && git push origin HEAD:main`.
 Pas besoin de pull request.
+Si `app.js` ou `style.css` change : incrémenter `?v=N` dans `index.html` (et « version N » dans app.js),
+sinon les téléphones gardent l'ancienne version en cache.
 
 ## Règle d'or : fidélité totale
 

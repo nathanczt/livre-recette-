@@ -247,6 +247,7 @@ function renderNewRecipe() {
         </div>
       </details>
       <div class="actions"><a class="btn" href="#/">← Sommaire</a></div>
+      <p class="hint" style="text-align:right">version 5</p>
     </article>`;
 
   const $ = (id) => document.getElementById(id);
