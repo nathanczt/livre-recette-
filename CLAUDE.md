@@ -4,6 +4,13 @@ Ce dépôt est un livre de recettes numérique (site statique, GitHub Pages). L'
 des liens (Instagram, TikTok, sites…), des captures d'écran ou du texte, et Claude en tire une
 recette propre, rédigée en français.
 
+## Publication automatique (demandé par l'utilisateur)
+
+Après chaque modification : commit, push sur la branche de travail, **puis publier sur `main`**
+sans attendre (c'est `main` qui est en ligne sur GitHub Pages) :
+`git fetch origin main && git merge origin/main && git push origin HEAD:main`.
+Pas besoin de pull request.
+
 ## Règle d'or : fidélité totale
 
 Claude fait **uniquement la mise en page**. Ne jamais changer, ajouter, retirer ou « améliorer » :
