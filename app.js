@@ -163,9 +163,12 @@ loadRecipes().then(route).catch((e) => {
 
 const REPO = { owner: "nathanczt", repo: "livre-recette-", branch: "main" };
 const TOKEN_KEY = "livre-recettes-github-token";
+// Le jeton est gardé en mémoire en plus du stockage du navigateur : si Safari bloque le
+// stockage (navigation privée, « Bloquer tous les cookies »), l'envoi fonctionne quand même.
+let memToken = "";
 const store = {
-  get() { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; } },
-  set(v) { try { v ? localStorage.setItem(TOKEN_KEY, v) : localStorage.removeItem(TOKEN_KEY); } catch {} },
+  get() { try { return localStorage.getItem(TOKEN_KEY) || memToken; } catch { return memToken; } },
+  set(v) { memToken = v || ""; try { v ? localStorage.setItem(TOKEN_KEY, v) : localStorage.removeItem(TOKEN_KEY); } catch {} },
 };
 let pendingFiles = [];
 
@@ -247,7 +250,7 @@ function renderNewRecipe() {
         </div>
       </details>
       <div class="actions"><a class="btn" href="#/">← Sommaire</a></div>
-      <p class="hint" style="text-align:right">version 5</p>
+      <p class="hint" style="text-align:right">version 6</p>
     </article>`;
 
   const $ = (id) => document.getElementById(id);
@@ -274,7 +277,7 @@ function renderNewRecipe() {
   $("save-token").addEventListener("click", async () => {
     // On met à jour la page sur place pour ne pas perdre les captures déjà ajoutées.
     const tokenMsg = (t, err) => { $("token-msg").innerHTML = `<p class="status ${err ? "error" : ""}">${t}</p>`; };
-    const value = $("token").value.trim();
+    const value = $("token").value.replace(/\s+/g, "");
     if (!value) { tokenMsg("Colle d'abord ton jeton dans la case.", true); return; }
     store.set(value); tokenMsg("Vérification…");
     try {
