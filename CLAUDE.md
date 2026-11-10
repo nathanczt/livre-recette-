@@ -22,6 +22,9 @@ ingrédients, quantités, unités, temps, températures, étapes, ordre des éta
   si elle manque dans un ingrédient, écrire « quantité non précisée ».
 - Conserver les astuces de l'auteur dans « Astuces », sans en inventer.
 - En cas de doute (texte illisible…), le signaler à l'utilisateur plutôt que deviner.
+- Mesures américaines (cups, pounds, ounces…) : garder la mesure d'origine et ajouter l'équivalent
+  métrique arrondi entre parenthèses (ex. « 1 livre (environ 450 g) », « 1 tasse (environ 24 cl) »).
+  Demandé par l'utilisateur.
 
 ## « Traite les nouvelles recettes »
 
