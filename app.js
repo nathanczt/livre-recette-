@@ -47,7 +47,9 @@ function renderMarkdown(md) {
     if ((m = line.match(/^(#{1,4})\s+(.*)$/))) {
       flushPara(); closeList();
       const lvl = Math.min(m[1].length + 1, 4);
-      inIngredients = /ingr[ée]dient/i.test(m[2]);
+      // Un sous-titre (### Pour la sauce…) reste dans la section Ingrédients ; un titre ## en change.
+      if (m[1].length <= 2) inIngredients = /ingr[ée]dient/i.test(m[2]);
+      else if (/ingr[ée]dient/i.test(m[2])) inIngredients = true;
       out.push(`<h${lvl}>${inline(m[2])}</h${lvl}>`);
     } else if ((m = line.match(/^[-*]\s+(.*)$/))) {
       flushPara();
@@ -250,7 +252,7 @@ function renderNewRecipe() {
         </div>
       </details>
       <div class="actions"><a class="btn" href="#/">← Sommaire</a></div>
-      <p class="hint" style="text-align:right">version 6</p>
+      <p class="hint" style="text-align:right">version 7</p>
     </article>`;
 
   const $ = (id) => document.getElementById(id);
