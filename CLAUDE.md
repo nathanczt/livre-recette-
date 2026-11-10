@@ -35,6 +35,9 @@ Le bouton « Nouvelle recette » du site dépose les captures dans `a-traiter/<d
 2. Pour chaque dossier de `a-traiter/` : regarder toutes les captures, lire `infos.md`
    (la note de l'utilisateur prime : catégorie, nom…), puis créer la recette (voir ci-dessous).
    Le lien va dans `source`.
+   Si le dossier n'a qu'un lien (pas de captures) et que la page n'est pas lisible (Instagram,
+   TikTok…) : créer une fiche « lien seul » (titre, catégorie, `source`, tag `lien Instagram`, une
+   phrase indiquant que la recette n'est pas retranscrite et le lien). Demandé par l'utilisateur.
 3. Supprimer le dossier traité (`git rm -r a-traiter/<dossier>`).
 4. Commit + push, puis lister à l'utilisateur les recettes ajoutées et tout point douteux.
 
