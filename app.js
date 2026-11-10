@@ -170,7 +170,8 @@ const store = {
 let pendingFiles = [];
 
 async function gh(path, opts = {}) {
-  const res = await fetch(`https://api.github.com/repos/${REPO.owner}/${REPO.repo}/${path}`, {
+  const url = `https://api.github.com/repos/${REPO.owner}/${REPO.repo}` + (path ? `/${path}` : "");
+  const res = await fetch(url, {
     ...opts,
     headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${store.get()}`, ...(opts.headers || {}) },
   });
@@ -276,14 +277,15 @@ function renderNewRecipe() {
     if (!value) { tokenMsg("Colle d'abord ton jeton dans la case.", true); return; }
     store.set(value); tokenMsg("Vérification…");
     try {
-      await gh("");
+      const info = await gh("");
+      if (info.permissions && !info.permissions.push) { const e = new Error("lecture seule"); e.status = "lecture seule"; throw e; }
       tokenMsg("✅ Connecté ! Tu peux maintenant envoyer ta recette.");
       $("settings-title").textContent = "⚙️ Connexion à GitHub ✅";
       $("forget-token").hidden = false; msg("");
       loadPending();
-    } catch {
+    } catch (err) {
       store.set("");
-      tokenMsg("Ce jeton ne fonctionne pas. Vérifie qu'il donne accès au dépôt « " + REPO.repo + " » avec la permission <strong>Contents : Read and write</strong>.", true);
+      tokenMsg("Ce jeton ne fonctionne pas. Vérifie qu'il donne accès au dépôt « " + REPO.repo + " » avec la permission <strong>Contents : Read and write</strong>. " + `<small>(code : ${esc(err.status || err.message)})</small>`, true);
     }
   });
   $("forget-token").addEventListener("click", () => { store.set(""); $("token").value = ""; $("forget-token").hidden = true; $("settings-title").textContent = "⚙️ Connexion à GitHub (à faire une seule fois)"; });
