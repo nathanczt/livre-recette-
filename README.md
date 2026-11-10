@@ -5,8 +5,12 @@ cases à cocher pour les ingrédients, navigation page par page et impression.
 
 ## Ajouter une recette
 
-Envoie à Claude un lien Instagram, des captures d'écran ou un texte : il rédige la recette et
-l'ajoute dans `recettes/` (voir `CLAUDE.md` pour le format).
+- **Depuis le site** : bouton « ＋ Nouvelle recette », ajoute tes captures d'écran et envoie.
+  Puis dis à Claude « traite les nouvelles recettes » : il les met en page sans rien changer au contenu.
+  (La première fois, le site te demande un jeton GitHub : les étapes sont expliquées sur la page.)
+- **Directement à Claude** : envoie un lien, des captures ou un texte dans la conversation.
+
+Le format des recettes et les consignes sont dans `CLAUDE.md`.
 
 ## Mettre le site en ligne (gratuit)
 

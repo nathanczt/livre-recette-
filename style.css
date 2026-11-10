@@ -84,3 +84,33 @@ h1, h2, h3 { font-family: "Playfair Display", serif; line-height: 1.2; }
   body { background: #fff; color: #000; }
   .book { box-shadow: none; border: 0; margin: 0; padding: 0; max-width: none; }
 }
+
+/* Nouvelle recette */
+.new-btn { background: var(--accent); color: #fff; border-color: var(--accent); white-space: nowrap; }
+.new-btn:hover { filter: brightness(1.08); }
+.form { display: grid; gap: 16px; margin-top: 16px; }
+.form label { display: grid; gap: 4px; font-weight: 600; font-size: .95rem; }
+.form input[type=text], .form input[type=url], .form input[type=password], .form textarea {
+  font: inherit; font-weight: 400; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--line);
+  background: var(--paper-edge); color: var(--ink); width: 100%;
+}
+.form textarea { min-height: 70px; resize: vertical; }
+.hint { font-weight: 400; color: var(--muted); font-size: .85rem; margin: 0; }
+.drop {
+  border: 2px dashed var(--line); border-radius: 10px; padding: 24px; text-align: center; cursor: pointer;
+  color: var(--muted); background: var(--paper-edge);
+}
+.drop:hover, .drop.over { border-color: var(--accent); color: var(--ink); }
+.drop input { display: none; }
+.thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+.thumbs figure { margin: 0; position: relative; }
+.thumbs img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); display: block; }
+.thumbs button { position: absolute; top: 4px; right: 4px; border: 0; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; background: rgba(0,0,0,.6); color: #fff; line-height: 1; }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-size: 1rem; padding: 10px 16px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.status { padding: 10px 14px; border-radius: 6px; background: var(--accent-soft); margin: 0; }
+.status.error { background: #f6d5d0; color: #7a1f12; }
+details.settings { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-top: 24px; }
+details.settings summary { cursor: pointer; font-weight: 600; }
+details.settings ol { font-size: .9rem; padding-left: 20px; }
+.pending li { margin: 4px 0; }

@@ -4,11 +4,31 @@ Ce dépôt est un livre de recettes numérique (site statique, GitHub Pages). L'
 des liens (Instagram, TikTok, sites…), des captures d'écran ou du texte, et Claude en tire une
 recette propre, rédigée en français.
 
-## Ajouter une recette
+## Règle d'or : fidélité totale
 
-1. Lire la source (captures, légende du post, transcription…). Si une info manque (quantité,
-   temps), l'estimer raisonnablement et le signaler dans « Astuces » ou à l'utilisateur ; ne rien inventer
-   d'important sans le dire.
+Claude fait **uniquement la mise en page**. Ne jamais changer, ajouter, retirer ou « améliorer » :
+ingrédients, quantités, unités, temps, températures, étapes, ordre des étapes.
+- Reformuler seulement pour la clarté (phrases courtes, une action par étape), sans changer le sens.
+- Une info absente de la source reste absente (ne pas remplir le champ du frontmatter) ;
+  si elle manque dans un ingrédient, écrire « quantité non précisée ».
+- Conserver les astuces de l'auteur dans « Astuces », sans en inventer.
+- En cas de doute (texte illisible…), le signaler à l'utilisateur plutôt que deviner.
+
+## « Traite les nouvelles recettes »
+
+Le bouton « Nouvelle recette » du site dépose les captures dans `a-traiter/<date>-<nom>/`
+(sur la branche `main`) : des images `capture-XX.jpg` et un `infos.md` (nom proposé, lien, note).
+
+1. `git fetch origin main` et partir de `origin/main` (les dépôts arrivent sur `main`).
+2. Pour chaque dossier de `a-traiter/` : regarder toutes les captures, lire `infos.md`
+   (la note de l'utilisateur prime : catégorie, nom…), puis créer la recette (voir ci-dessous).
+   Le lien va dans `source`.
+3. Supprimer le dossier traité (`git rm -r a-traiter/<dossier>`).
+4. Commit + push, puis lister à l'utilisateur les recettes ajoutées et tout point douteux.
+
+## Ajouter une recette (lien, captures ou texte envoyés dans la conversation)
+
+1. Lire la source (captures, légende du post, transcription…) en respectant la règle d'or.
 2. Créer `recettes/<slug>.md` (slug en minuscules, sans accents, mots séparés par des tirets).
 3. Ajouter le nom du fichier dans `recettes/index.json` (tableau JSON).
 4. Commit + push.

@@ -144,14 +144,184 @@ function renderRecipe(slug) {
 
 function route() {
   const m = location.hash.match(/^#\/recette\/(.+)$/);
-  if (m) renderRecipe(decodeURIComponent(m[1]));
+  if (location.hash === "#/nouvelle") { document.title = "Nouvelle recette — Mon Livre de Recettes"; renderNewRecipe(); }
+  else if (m) renderRecipe(decodeURIComponent(m[1]));
   else { document.title = "Mon Livre de Recettes"; renderToc(); }
 }
 
-search.addEventListener("input", () => { if (location.hash.startsWith("#/recette/")) location.hash = "#/"; else renderToc(); });
+search.addEventListener("input", () => { if (location.hash.length > 2) location.hash = "#/"; else renderToc(); });
 window.addEventListener("hashchange", route);
 
 loadRecipes().then(route).catch((e) => {
   console.error(e);
   app.innerHTML = `<p class="empty">Impossible de charger les recettes. Ouvre le site via un serveur (GitHub Pages ou <code>python3 -m http.server</code>).</p>`;
 });
+
+// ───────────── Nouvelle recette : envoi des captures dans a-traiter/ ─────────────
+// Les captures sont déposées dans le dépôt GitHub (dossier a-traiter/) grâce à un jeton
+// personnel stocké uniquement sur l'appareil. Claude les met ensuite en page.
+
+const REPO = { owner: "nathanczt", repo: "livre-recette-", branch: "main" };
+const TOKEN_KEY = "livre-recettes-github-token";
+const store = {
+  get() { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; } },
+  set(v) { try { v ? localStorage.setItem(TOKEN_KEY, v) : localStorage.removeItem(TOKEN_KEY); } catch {} },
+};
+let pendingFiles = [];
+
+async function gh(path, opts = {}) {
+  const res = await fetch(`https://api.github.com/repos/${REPO.owner}/${REPO.repo}/${path}`, {
+    ...opts,
+    headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${store.get()}`, ...(opts.headers || {}) },
+  });
+  if (!res.ok) {
+    const err = new Error(`GitHub ${res.status}`); err.status = res.status; throw err;
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+const slugify = (s) => norm(s).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "recette";
+
+// Réduit les grosses photos (texte toujours lisible) pour garder le dépôt léger.
+async function toJpegBase64(file) {
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.88));
+    return { data: await blobToBase64(blob), ext: "jpg" };
+  } catch {
+    return { data: await blobToBase64(file), ext: (file.name.split(".").pop() || "img").toLowerCase() };
+  }
+}
+const blobToBase64 = (blob) => new Promise((resolve, reject) => {
+  const fr = new FileReader();
+  fr.onload = () => resolve(String(fr.result).split(",")[1]);
+  fr.onerror = reject;
+  fr.readAsDataURL(blob);
+});
+
+function renderNewRecipe() {
+  pendingFiles = [];
+  const hasToken = !!store.get();
+  app.innerHTML = `
+    <article class="recipe">
+      <p class="cat">Ajouter au livre</p>
+      <h1>Nouvelle recette</h1>
+      <p class="hint">Ajoute tes captures d'écran (et le lien si tu l'as). Elles seront mises de côté,
+        puis Claude les mettra en page <strong>sans rien changer</strong> au contenu : mêmes ingrédients, mêmes quantités, mêmes étapes.</p>
+      <form class="form" id="new-form">
+        <label class="drop" id="drop">
+          <input type="file" id="files" accept="image/*" multiple>
+          📸 <strong>Choisir des captures d'écran</strong><br><span class="hint">ou les glisser ici</span>
+        </label>
+        <div class="thumbs" id="thumbs"></div>
+        <label><span>Nom de la recette <span class="hint">(facultatif)</span></span>
+          <input type="text" id="titre" placeholder="Ex. : Tarte aux pommes de mamie"></label>
+        <label><span>Lien de la publication <span class="hint">(facultatif)</span></span>
+          <input type="url" id="lien" placeholder="https://www.instagram.com/p/…"></label>
+        <label><span>Une note pour Claude <span class="hint">(facultatif)</span></span>
+          <textarea id="note" placeholder="Ex. : catégorie Desserts, la recette est dans la 2e capture…"></textarea></label>
+        <button class="btn primary" id="send" type="submit" ${hasToken ? "" : "disabled"}>Envoyer au livre</button>
+        <div id="msg"></div>
+      </form>
+      <section class="pending" id="pending"></section>
+      <details class="settings" ${hasToken ? "" : "open"}>
+        <summary>⚙️ Connexion à GitHub ${hasToken ? "✅" : "(à faire une seule fois)"}</summary>
+        <p class="hint">Le site a besoin d'un « jeton » GitHub pour déposer tes captures. Il reste enregistré uniquement sur cet appareil.</p>
+        <ol>
+          <li>Ouvre <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a></li>
+          <li><strong>Token name</strong> : « Livre de recettes ». <strong>Expiration</strong> : la plus longue possible.</li>
+          <li><strong>Repository access</strong> : <em>Only select repositories</em> → <code>${REPO.repo}</code></li>
+          <li><strong>Permissions</strong> → <em>Repository permissions</em> → <strong>Contents</strong> : <em>Read and write</em></li>
+          <li>Clique sur <strong>Generate token</strong>, copie-le et colle-le ci-dessous.</li>
+        </ol>
+        <div class="form">
+          <label>Jeton GitHub <input type="password" id="token" placeholder="github_pat_…" value="${esc(store.get())}"></label>
+          <div class="actions"><button class="btn" id="save-token" type="button">Enregistrer</button>
+          ${hasToken ? `<button class="btn" id="forget-token" type="button">Oublier le jeton</button>` : ""}</div>
+        </div>
+      </details>
+      <div class="actions"><a class="btn" href="#/">← Sommaire</a></div>
+    </article>`;
+
+  const $ = (id) => document.getElementById(id);
+  const msg = (text, error = false) => { $("msg").innerHTML = text ? `<p class="status ${error ? "error" : ""}">${text}</p>` : ""; };
+
+  const drawThumbs = () => {
+    $("thumbs").innerHTML = pendingFiles.map((f, i) => `
+      <figure><img src="${f.url}" alt="Capture ${i + 1}"><button type="button" data-i="${i}" aria-label="Retirer">✕</button></figure>`).join("");
+    $("thumbs").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+      URL.revokeObjectURL(pendingFiles[b.dataset.i].url); pendingFiles.splice(b.dataset.i, 1); drawThumbs();
+    }));
+  };
+  const addFiles = (list) => {
+    [...list].filter((f) => f.type.startsWith("image/") || /\.(heic|heif)$/i.test(f.name))
+      .forEach((file) => pendingFiles.push({ file, url: URL.createObjectURL(file) }));
+    drawThumbs();
+  };
+  $("files").addEventListener("change", (e) => { addFiles(e.target.files); e.target.value = ""; });
+  const drop = $("drop");
+  drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); addFiles(e.dataTransfer.files); });
+
+  $("save-token").addEventListener("click", async () => {
+    store.set($("token").value.trim());
+    try { await gh(""); renderNewRecipe(); }
+    catch { store.set(""); alert("Ce jeton ne fonctionne pas. Vérifie qu'il donne accès au dépôt « " + REPO.repo + " » avec la permission Contents : Read and write."); }
+  });
+  $("forget-token")?.addEventListener("click", () => { store.set(""); renderNewRecipe(); });
+
+  $("new-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const titre = $("titre").value.trim(), lien = $("lien").value.trim(), note = $("note").value.trim();
+    if (!pendingFiles.length && !lien && !note) { msg("Ajoute au moins une capture d'écran (ou un lien).", true); return; }
+    $("send").disabled = true;
+    const now = new Date(), pad = (n) => String(n).padStart(2, "0");
+    const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    const folder = `a-traiter/${stamp}-${slugify(titre)}`;
+    const put = (path, content, message) => gh(`contents/${path}`, {
+      method: "PUT", body: JSON.stringify({ message, content, branch: REPO.branch }),
+    });
+    try {
+      for (let i = 0; i < pendingFiles.length; i++) {
+        msg(`Envoi de la capture ${i + 1} sur ${pendingFiles.length}…`);
+        const { data, ext } = await toJpegBase64(pendingFiles[i].file);
+        await put(`${folder}/capture-${pad(i + 1)}.${ext}`, data, `Capture ${i + 1} pour « ${titre || "nouvelle recette"} »`);
+      }
+      msg("Finalisation…");
+      const md = [
+        "# Recette à mettre en page", "",
+        `- **Nom proposé** : ${titre || "(non précisé)"}`,
+        `- **Lien** : ${lien || "(aucun)"}`,
+        `- **Ajoutée le** : ${now.toLocaleString("fr-FR")}`,
+        `- **Captures** : ${pendingFiles.length}`, "",
+        "## Note", "", note || "(aucune)", "",
+      ].join("\n");
+      await put(`${folder}/infos.md`, blobToB64Text(md), `Nouvelle recette à traiter : ${titre || stamp}`);
+      pendingFiles.forEach((f) => URL.revokeObjectURL(f.url)); pendingFiles = [];
+      $("new-form").reset(); drawThumbs();
+      msg(`✅ C'est envoyé ! Dis à Claude : <strong>« traite les nouvelles recettes »</strong> pour qu'elle apparaisse dans le livre.`);
+      loadPending();
+    } catch (err) {
+      msg(err.status === 401 || err.status === 403 || err.status === 404
+        ? "GitHub a refusé l'envoi : le jeton est peut-être expiré ou n'a pas les bons droits (voir ⚙️ ci-dessous)."
+        : "L'envoi a échoué. Vérifie ta connexion et réessaie.", true);
+    } finally { $("send").disabled = !store.get(); }
+  });
+
+  async function loadPending() {
+    if (!store.get()) return;
+    try {
+      const items = (await gh(`contents/a-traiter?ref=${REPO.branch}`)).filter((x) => x.type === "dir");
+      $("pending").innerHTML = items.length ? `<h2>En attente de mise en page (${items.length})</h2>
+        <ul>${items.map((x) => `<li>${esc(x.name.replace(/^\d{4}-\d{2}-\d{2}-\d{6}-/, "").replace(/-/g, " "))}</li>`).join("")}</ul>` : "";
+    } catch { $("pending").innerHTML = ""; }
+  }
+  loadPending();
+}
+
+const blobToB64Text = (text) => btoa(String.fromCharCode(...new TextEncoder().encode(text)));
