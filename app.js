@@ -224,12 +224,12 @@ function renderNewRecipe() {
           <input type="url" id="lien" placeholder="https://www.instagram.com/p/…"></label>
         <label><span>Une note pour Claude <span class="hint">(facultatif)</span></span>
           <textarea id="note" placeholder="Ex. : catégorie Desserts, la recette est dans la 2e capture…"></textarea></label>
-        <button class="btn primary" id="send" type="submit" ${hasToken ? "" : "disabled"}>Envoyer au livre</button>
+        <button class="btn primary" id="send" type="submit">Envoyer au livre</button>
         <div id="msg"></div>
       </form>
       <section class="pending" id="pending"></section>
-      <details class="settings" ${hasToken ? "" : "open"}>
-        <summary>⚙️ Connexion à GitHub ${hasToken ? "✅" : "(à faire une seule fois)"}</summary>
+      <details class="settings" id="settings" ${hasToken ? "" : "open"}>
+        <summary id="settings-title">⚙️ Connexion à GitHub ${hasToken ? "✅" : "(à faire une seule fois)"}</summary>
         <p class="hint">Le site a besoin d'un « jeton » GitHub pour déposer tes captures. Il reste enregistré uniquement sur cet appareil.</p>
         <ol>
           <li>Ouvre <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a></li>
@@ -241,7 +241,8 @@ function renderNewRecipe() {
         <div class="form">
           <label>Jeton GitHub <input type="password" id="token" placeholder="github_pat_…" value="${esc(store.get())}"></label>
           <div class="actions"><button class="btn" id="save-token" type="button">Enregistrer</button>
-          ${hasToken ? `<button class="btn" id="forget-token" type="button">Oublier le jeton</button>` : ""}</div>
+          <button class="btn" id="forget-token" type="button" ${hasToken ? "" : "hidden"}>Oublier le jeton</button></div>
+          <div id="token-msg"></div>
         </div>
       </details>
       <div class="actions"><a class="btn" href="#/">← Sommaire</a></div>
@@ -269,16 +270,33 @@ function renderNewRecipe() {
   drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); addFiles(e.dataTransfer.files); });
 
   $("save-token").addEventListener("click", async () => {
-    store.set($("token").value.trim());
-    try { await gh(""); renderNewRecipe(); }
-    catch { store.set(""); alert("Ce jeton ne fonctionne pas. Vérifie qu'il donne accès au dépôt « " + REPO.repo + " » avec la permission Contents : Read and write."); }
+    // On met à jour la page sur place pour ne pas perdre les captures déjà ajoutées.
+    const tokenMsg = (t, err) => { $("token-msg").innerHTML = `<p class="status ${err ? "error" : ""}">${t}</p>`; };
+    const value = $("token").value.trim();
+    if (!value) { tokenMsg("Colle d'abord ton jeton dans la case.", true); return; }
+    store.set(value); tokenMsg("Vérification…");
+    try {
+      await gh("");
+      tokenMsg("✅ Connecté ! Tu peux maintenant envoyer ta recette.");
+      $("settings-title").textContent = "⚙️ Connexion à GitHub ✅";
+      $("forget-token").hidden = false; msg("");
+      loadPending();
+    } catch {
+      store.set("");
+      tokenMsg("Ce jeton ne fonctionne pas. Vérifie qu'il donne accès au dépôt « " + REPO.repo + " » avec la permission <strong>Contents : Read and write</strong>.", true);
+    }
   });
-  $("forget-token")?.addEventListener("click", () => { store.set(""); renderNewRecipe(); });
+  $("forget-token").addEventListener("click", () => { store.set(""); $("token").value = ""; $("forget-token").hidden = true; $("settings-title").textContent = "⚙️ Connexion à GitHub (à faire une seule fois)"; });
 
   $("new-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const titre = $("titre").value.trim(), lien = $("lien").value.trim(), note = $("note").value.trim();
     if (!pendingFiles.length && !lien && !note) { msg("Ajoute au moins une capture d'écran (ou un lien).", true); return; }
+    if (!store.get()) {
+      msg("Il faut d'abord connecter le site à GitHub (une seule fois) : suis les étapes de la section ⚙️ juste en dessous. Tes captures restent là.", true);
+      $("settings").open = true; $("settings").scrollIntoView({ behavior: "smooth" });
+      return;
+    }
     $("send").disabled = true;
     const now = new Date(), pad = (n) => String(n).padStart(2, "0");
     const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
@@ -310,7 +328,7 @@ function renderNewRecipe() {
       msg(err.status === 401 || err.status === 403 || err.status === 404
         ? "GitHub a refusé l'envoi : le jeton est peut-être expiré ou n'a pas les bons droits (voir ⚙️ ci-dessous)."
         : "L'envoi a échoué. Vérifie ta connexion et réessaie.", true);
-    } finally { $("send").disabled = !store.get(); }
+    } finally { $("send").disabled = false; }
   });
 
   async function loadPending() {
